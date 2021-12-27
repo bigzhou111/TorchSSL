@@ -15,7 +15,7 @@ import torch.multiprocessing as mp
 from utils import net_builder, get_logger, count_parameters, over_write_args_from_file
 from train_utils import TBLog, get_optimizer, get_cosine_schedule_with_warmup
 from models.flexmatch.flexmatch import FlexMatch
-from datasets.ssl_dataset import SSL_Dataset, ImageNetLoader
+from datasets.ssl_dataset import SSL_Dataset, ImageNetLoader, BusDatasetLoader
 from datasets.data_utils import get_data_loader
 
 
@@ -28,8 +28,8 @@ def main(args):
     save_path = os.path.join(args.save_dir, args.save_name)
     if os.path.exists(save_path) and args.overwrite and  args.resume == False:
         import shutil
-        shutil.rmtree(save_path)
-    if os.path.exists(save_path) and not args.overwrite:
+        shutil.rmtree(save_path)#递归删除文件
+    if os.path.exists(save_path) and not args.overwrite:#已存在但不允许充血
         raise Exception('already existing model: {}'.format(save_path))
     if args.resume:
         if args.load_path is None:
@@ -38,7 +38,7 @@ def main(args):
             raise Exception('Saving & Loading pathes are same. \
                             If you want over-write, give --overwrite in the argument.')
 
-    if args.seed is not None:
+    if args.seed is not None:#设置了随机种子会出现特定训练，训练会变慢
         warnings.warn('You have chosen to seed training. '
                       'This will turn on the CUDNN deterministic setting, '
                       'which can slow down your training considerably! '
@@ -49,7 +49,7 @@ def main(args):
         warnings.warn('You have chosen a specific GPU. This will completely '
                       'disable data parallelism.')
 
-    if args.dist_url == "env://" and args.world_size == -1:
+    if args.dist_url == "env://" and args.world_size == -1:#跟分布式训练相关
         args.world_size = int(os.environ["WORLD_SIZE"])
 
     # distributed: true if manually selected or if world_size > 1
@@ -79,7 +79,9 @@ def main_worker(gpu, ngpus_per_node, args):
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    cudnn.deterministic = True
+    cudnn.deterministic = True#设置会True，每次返回的卷积算法将是确定的，
+    #即默认算法。如果配合上设置 Torch 的随机种子为固定值的话，应该可以保证每次运行网络的时候相同输入的输出是固定的
+
 
     # SET UP FOR DISTRIBUTED TRAINING
     if args.distributed:
@@ -108,6 +110,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if 'imagenet' in args.dataset.lower():
         _net_builder = net_builder('ResNet50', False, None, is_remix=False)
     else:
+        #获取主干网络
         _net_builder = net_builder(args.net,
                                    args.net_from_name,
                                    {'first_stride': 2 if 'stl' in args.dataset else 1,
@@ -192,14 +195,21 @@ def main_worker(gpu, ngpus_per_node, args):
         _eval_dset = SSL_Dataset(args, alg='flexmatch', name=args.dataset, train=False,
                                 num_classes=args.num_classes, data_dir=args.data_dir)
         eval_dset = _eval_dset.get_dset()
-    else:
+    elif args.dataser.lower() == "imagenet":
         image_loader = ImageNetLoader(root_path=args.data_dir, num_labels=args.num_labels,
                                       num_class=args.num_classes)
         lb_dset = image_loader.get_lb_train_data()
         ulb_dset = image_loader.get_ulb_train_data()
         eval_dset = image_loader.get_lb_test_data()
-    if args.rank == 0:
-        torch.distributed.barrier()
+    else:
+        image_loader = BusDatasetLoader(root_path=args.data_dir, num_labels=args.num_labels,
+                                      num_class=args.num_classes)
+        lb_dset = image_loader.get_lb_train_data()
+        ulb_dset = image_loader.get_ulb_train_data()
+        eval_dset = image_loader.get_lb_test_data()
+
+    # if args.rank == 0:
+    #     torch.distributed.barrier()
  
     
     loader_dict = {}
@@ -264,7 +274,7 @@ if __name__ == "__main__":
     '''
     Saving & loading of the model.
     '''
-    parser.add_argument('--save_dir', type=str, default='./saved_models')
+    parser.add_argument('--save_dir', type=str, default='./saved_models')#存储路径
     parser.add_argument('-sn', '--save_name', type=str, default='flexmatch')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--load_path', type=str, default=None)
@@ -290,7 +300,7 @@ if __name__ == "__main__":
     parser.add_argument('--hard_label', type=str2bool, default=True)
     parser.add_argument('--T', type=float, default=0.5)
     parser.add_argument('--p_cutoff', type=float, default=0.95)
-    parser.add_argument('--ema_m', type=float, default=0.999, help='ema momentum for eval_model')
+    parser.add_argument('--ema_m', type=float, default=0.999, help='ema momentum for eval_model')#指数加权平均
     parser.add_argument('--ulb_loss_ratio', type=float, default=1.0)
     parser.add_argument('--use_DA', type=str2bool, default=False)
     parser.add_argument('-w', '--thresh_warmup', type=str2bool, default=True)

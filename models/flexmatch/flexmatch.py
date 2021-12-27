@@ -27,7 +27,7 @@ class FlexMatch:
         Args:
             net_builder: backbone network class (see net_builder in utils.py)
             num_classes: # of label classes 
-            ema_m: momentum of exponential moving average for eval_model
+            ema_m: momentum of exponential moving average for eval_model，用于对模型参数进行滑动平均
             T: Temperature scaling parameter for output sharpening (only when hard_label = False)
             p_cutoff: confidence cutoff parameters for loss masking
             lambda_u: ratio of unsupervised loss to supervised loss
@@ -90,7 +90,7 @@ class FlexMatch:
         if args.resume == True:
             self.ema.load(self.ema_model)
 
-        # p(y) based on the labeled examples seen during training
+        # p(y) based on the labeled examples seen during training 有标签数据的概率
         dist_file_name = r"./data_statistics/" + args.dataset + '_' + str(args.num_labels) + '.json'
         if args.dataset.upper() == 'IMAGENET':
             p_target = None
@@ -109,7 +109,7 @@ class FlexMatch:
         start_run = torch.cuda.Event(enable_timing=True)
         end_run = torch.cuda.Event(enable_timing=True)
 
-        start_batch.record()
+        start_batch.record()#记录开始时间
         best_eval_acc, best_it = 0.0, 0
 
         scaler = GradScaler()
@@ -117,13 +117,15 @@ class FlexMatch:
 
         # eval for once to verify if the checkpoint is loaded correctly
         if args.resume == True:
-            eval_dict = self.evaluate(args=args)
+            eval_dict = self.evaluate(args=args)#得到eval结果
             print(eval_dict)
 
         selected_label = torch.ones((len(self.ulb_dset),), dtype=torch.long, ) * -1
+        print('select_label:{}'.format(selected_label))
+        
         selected_label = selected_label.cuda(args.gpu)
 
-        classwise_acc = torch.zeros((args.num_classes,)).cuda(args.gpu)
+        classwise_acc = torch.zeros((args.num_classes,)).cuda(args.gpu)#是干啥的？
 
         for (_, x_lb, y_lb), (x_ulb_idx, x_ulb_w, x_ulb_s) in zip(self.loader_dict['train_lb'],
                                                                   self.loader_dict['train_ulb']):
@@ -136,14 +138,19 @@ class FlexMatch:
             start_run.record()
 
             num_lb = x_lb.shape[0]
+            print('num_lb:{}'.format(num_lb))
+            
             num_ulb = x_ulb_w.shape[0]
+            print('num_ulb:{}'.format(num_ulb))
             assert num_ulb == x_ulb_s.shape[0]
 
             x_lb, x_ulb_w, x_ulb_s = x_lb.cuda(args.gpu), x_ulb_w.cuda(args.gpu), x_ulb_s.cuda(args.gpu)
+            print('x_lb:{}, x_ulb_w:{}, x_ulb_s'.format(x_lb, x_ulb_w, x_ulb_s))
             x_ulb_idx = x_ulb_idx.cuda(args.gpu)
             y_lb = y_lb.cuda(args.gpu)
 
             pseudo_counter = Counter(selected_label.tolist())
+            print('pseudo_counter:{}'.format(pseudo_counter))
             if max(pseudo_counter.values()) < len(self.ulb_dset):  # not all(5w) -1
                 if args.thresh_warmup:
                     for i in range(args.num_classes):
@@ -160,6 +167,7 @@ class FlexMatch:
             # inference and calculate sup/unsup losses
             with amp_cm():
                 logits = self.model(inputs)
+                print('logits:{}'.format(logits))
                 logits_x_lb = logits[:num_lb]
                 logits_x_ulb_w, logits_x_ulb_s = logits[num_lb:].chunk(2)
                 sup_loss = ce_loss(logits_x_lb, y_lb, reduction='mean')
@@ -228,7 +236,7 @@ class FlexMatch:
                     best_it = self.it
                 self.print_fn(
                     f"{self.it} iteration, USE_EMA: {self.ema_m != 0}, {tb_dict}, BEST_EVAL_ACC: {best_eval_acc}, at {best_it} iters")
-
+                
                 if not args.multiprocessing_distributed or \
                         (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
 
