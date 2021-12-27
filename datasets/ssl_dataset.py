@@ -453,5 +453,7 @@ class SSL_Dataset:
         ulb_dset = BasicDataset(self.alg, ulb_data, ulb_targets, self.num_classes,
                                 self.transform, True, strong_transform, onehot)
         # print(lb_data.shape)
+
         # print(ulb_data.shape)
+        #   测试
         return lb_dset, ulb_dset
