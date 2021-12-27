@@ -28,14 +28,14 @@ mean['cifar100'] = [x / 255 for x in [129.3, 124.1, 112.4]]
 mean['svhn'] = [0.4380, 0.4440, 0.4730]
 mean['stl10'] = [x / 255 for x in [112.4, 109.1, 98.6]]
 mean['imagenet'] = [0.485, 0.456, 0.406]
-mean['busDataset'] = []
+mean['busDataset'] = [x / 255 for x in [125.3, 123.0, 113.9]]
 
 std['cifar10'] = [x / 255 for x in [63.0, 62.1, 66.7]]
 std['cifar100'] = [x / 255 for x in [68.2, 65.4, 70.4]]
 std['svhn'] = [0.1751, 0.1771, 0.1744]
 std['stl10'] = [x / 255 for x in [68.4, 66.6, 68.5]]
 std['imagenet'] = [0.229, 0.224, 0.225]
-std['busDataset'] = []
+std['busDataset'] = [x / 255 for x in [63.0, 62.1, 66.7]]
 
 
 
@@ -152,9 +152,8 @@ class BusDatasetLoader:
     def get_transform(self, train, ulb):
         if train:
             transform = transforms.Compose([
-                transforms.Resize([256, 256]),
+                transforms.Resize([224, 224]),
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomCrop(224, padding=4, padding_mode='reflect'),
                 transforms.ToTensor(),
                 transforms.Normalize(mean["busDataset"], std["busDataset"])])
         else:
@@ -452,9 +451,4 @@ class SSL_Dataset:
 
         ulb_dset = BasicDataset(self.alg, ulb_data, ulb_targets, self.num_classes,
                                 self.transform, True, strong_transform, onehot)
-        # print(lb_data.shape)
-
-        # print(ulb_data.shape)
-        #   测试
-        #  测试111
         return lb_dset, ulb_dset

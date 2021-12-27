@@ -121,7 +121,7 @@ class FlexMatch:
             print(eval_dict)
 
         selected_label = torch.ones((len(self.ulb_dset),), dtype=torch.long, ) * -1
-        print('select_label:{}'.format(selected_label))
+        #print('select_label:{}'.format(selected_label))
         
         selected_label = selected_label.cuda(args.gpu)
 
@@ -138,19 +138,19 @@ class FlexMatch:
             start_run.record()
 
             num_lb = x_lb.shape[0]
-            print('num_lb:{}'.format(num_lb))
+            #print('num_lb:{}'.format(num_lb))
             
             num_ulb = x_ulb_w.shape[0]
-            print('num_ulb:{}'.format(num_ulb))
+            #print('num_ulb:{}'.format(num_ulb))
             assert num_ulb == x_ulb_s.shape[0]
 
             x_lb, x_ulb_w, x_ulb_s = x_lb.cuda(args.gpu), x_ulb_w.cuda(args.gpu), x_ulb_s.cuda(args.gpu)
-            print('x_lb:{}, x_ulb_w:{}, x_ulb_s'.format(x_lb, x_ulb_w, x_ulb_s))
+            #print('x_lb:{}, x_ulb_w:{}, x_ulb_s'.format(x_lb, x_ulb_w, x_ulb_s))
             x_ulb_idx = x_ulb_idx.cuda(args.gpu)
             y_lb = y_lb.cuda(args.gpu)
 
             pseudo_counter = Counter(selected_label.tolist())
-            print('pseudo_counter:{}'.format(pseudo_counter))
+            #print('pseudo_counter:{}'.format(pseudo_counter))
             if max(pseudo_counter.values()) < len(self.ulb_dset):  # not all(5w) -1
                 if args.thresh_warmup:
                     for i in range(args.num_classes):
@@ -167,7 +167,7 @@ class FlexMatch:
             # inference and calculate sup/unsup losses
             with amp_cm():
                 logits = self.model(inputs)
-                print('logits:{}'.format(logits))
+                #print('logits:{}'.format(logits))
                 logits_x_lb = logits[:num_lb]
                 logits_x_ulb_w, logits_x_ulb_s = logits[num_lb:].chunk(2)
                 sup_loss = ce_loss(logits_x_lb, y_lb, reduction='mean')
@@ -277,11 +277,13 @@ class FlexMatch:
             y_logits.extend(torch.softmax(logits, dim=-1).cpu().tolist())
             total_loss += loss.detach() * num_batch
         top1 = accuracy_score(y_true, y_pred)
-        top5 = top_k_accuracy_score(y_true, y_logits, k=5)
+        #top5 = top_k_accuracy_score(y_true, y_logits, k=5)
+        top5 = top_k_accuracy_score(y_true, y_pred, k=5)
         precision = precision_score(y_true, y_pred, average='macro')
         recall = recall_score(y_true, y_pred, average='macro')
         F1 = f1_score(y_true, y_pred, average='macro')
-        AUC = roc_auc_score(y_true, y_logits, multi_class='ovo')
+        #AUC = roc_auc_score(y_true, y_logits, multi_class='ovo')
+        AUC = roc_auc_score(y_true, y_pred, multi_class='ovo')
         cf_mat = confusion_matrix(y_true, y_pred, normalize='true')
         self.print_fn('confusion matrix:\n' + np.array_str(cf_mat))
         self.ema.restore()

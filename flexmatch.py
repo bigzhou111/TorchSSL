@@ -188,25 +188,26 @@ def main_worker(gpu, ngpus_per_node, args):
         torch.distributed.barrier()
  
     # Construct Dataset & DataLoader
-    if args.dataset.lower() != "imagenet":
+    if args.dataset.lower() == "busdataset":
+        image_loader = BusDatasetLoader(root_path=args.data_dir, num_labels=args.num_labels,
+                                      num_class=args.num_classes)
+        lb_dset = image_loader.get_lb_train_data()
+        ulb_dset = image_loader.get_ulb_train_data()
+        eval_dset = image_loader.get_lb_test_data()
+    elif args.dataset.lower() != "imagenet" and args.dataset.lower() != "busdataset":
         train_dset = SSL_Dataset(args, alg='flexmatch', name=args.dataset, train=True,
                                 num_classes=args.num_classes, data_dir=args.data_dir)
         lb_dset, ulb_dset = train_dset.get_ssl_dset(args.num_labels)
         _eval_dset = SSL_Dataset(args, alg='flexmatch', name=args.dataset, train=False,
                                 num_classes=args.num_classes, data_dir=args.data_dir)
         eval_dset = _eval_dset.get_dset()
-    elif args.dataser.lower() == "imagenet":
+    else:
         image_loader = ImageNetLoader(root_path=args.data_dir, num_labels=args.num_labels,
                                       num_class=args.num_classes)
         lb_dset = image_loader.get_lb_train_data()
         ulb_dset = image_loader.get_ulb_train_data()
         eval_dset = image_loader.get_lb_test_data()
-    else:
-        image_loader = BusDatasetLoader(root_path=args.data_dir, num_labels=args.num_labels,
-                                      num_class=args.num_classes)
-        lb_dset = image_loader.get_lb_train_data()
-        ulb_dset = image_loader.get_ulb_train_data()
-        eval_dset = image_loader.get_lb_test_data()
+        
 
     # if args.rank == 0:
     #     torch.distributed.barrier()

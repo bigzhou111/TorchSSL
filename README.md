@@ -48,7 +48,7 @@ We support 5 popular datasets in SSL research as listed below:
 It is convenient to perform experiment with TorchSSL. For example, if you want to perform FlexMatch algorithm:
 
 1. Modify the config file in `config/flexmatch/flexmatch.yaml` as you need
-2. Run `f`
+2. Run `python flexmatch.py --c config/flexmatch/flexmatch.yaml`
 
 ## ImageNet Dataset
 
