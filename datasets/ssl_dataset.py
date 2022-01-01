@@ -28,14 +28,14 @@ mean['cifar100'] = [x / 255 for x in [129.3, 124.1, 112.4]]
 mean['svhn'] = [0.4380, 0.4440, 0.4730]
 mean['stl10'] = [x / 255 for x in [112.4, 109.1, 98.6]]
 mean['imagenet'] = [0.485, 0.456, 0.406]
-mean['busDataset'] = [x / 255 for x in [125.3, 123.0, 113.9]]
+mean['busDataset'] = [0.485, 0.456, 0.406]
 
 std['cifar10'] = [x / 255 for x in [63.0, 62.1, 66.7]]
 std['cifar100'] = [x / 255 for x in [68.2, 65.4, 70.4]]
 std['svhn'] = [0.1751, 0.1771, 0.1744]
 std['stl10'] = [x / 255 for x in [68.4, 66.6, 68.5]]
 std['imagenet'] = [0.229, 0.224, 0.225]
-std['busDataset'] = [x / 255 for x in [63.0, 62.1, 66.7]]
+std['busDataset'] = [0.229, 0.224, 0.225]
 
 
 
@@ -153,7 +153,7 @@ class BusDatasetLoader:
         if train:
             transform = transforms.Compose([
                 transforms.Resize([224, 224]),
-                transforms.RandomHorizontalFlip(),
+    
                 transforms.ToTensor(),
                 transforms.Normalize(mean["busDataset"], std["busDataset"])])
         else:
