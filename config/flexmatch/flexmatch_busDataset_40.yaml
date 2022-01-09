@@ -7,8 +7,8 @@ use_tensorboard: True
 epoch: 1
 num_train_iter: 131072
 num_eval_iter: 100
-num_labels: 50
-batch_size: 8
+num_labels: 40
+batch_size: 16
 eval_batch_size: 8
 hard_label: True
 T: 0.5
@@ -16,13 +16,13 @@ p_cutoff: 0.95
 ulb_loss_ratio: 1.0
 uratio: 7
 ema_m: 0.999
-optim: adam
+optim: AdamW
 lr: 0.003
 momentum: 0.9
 weight_decay: 0.0005
 amp: False
-net: ResNet50
-net_from_name: False
+net: resnet34
+net_from_name: True
 depth: 0
 widen_factor: 0
 leaky_slope: 0.1

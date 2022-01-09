@@ -21,8 +21,8 @@ lr: 0.003
 momentum: 0.9
 weight_decay: 0.0005
 amp: False
-net: resnet34
-net_from_name: True
+net: ResNet50
+net_from_name: False
 depth: 0
 widen_factor: 0
 leaky_slope: 0.1

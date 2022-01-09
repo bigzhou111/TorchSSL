@@ -49,7 +49,12 @@ class FlexMatch:
         # network is builded only by num_classes,
         # other configs are covered in main.py
 
+        #加载预训练模型
+        # net_builder = net_builder(pretrained=True)
+        # num_ftrs = net_builder.fc.in_features
+        # net_builder.fc = nn.Linear(num_ftrs, num_classes)
         self.model = net_builder(num_classes=num_classes)
+        #self.model = net_builder
         self.ema_model = None
 
         self.num_eval_iter = num_eval_iter
@@ -220,8 +225,8 @@ class FlexMatch:
             tb_dict['train/prefecth_time'] = start_batch.elapsed_time(end_batch) / 1000.
             tb_dict['train/run_time'] = start_run.elapsed_time(end_run) / 1000.
 
-            # Save model for each 10K steps and best model for each 1K steps
-            if self.it % 10000 == 0:
+            # Save model for each 1K steps and best model for each 0.1K steps
+            if self.it % 1000 == 0:
                 save_path = os.path.join(args.save_dir, args.save_name)
                 if not args.multiprocessing_distributed or \
                         (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -249,7 +254,7 @@ class FlexMatch:
             del tb_dict
             start_batch.record()
             if self.it > 0.8 * args.num_train_iter:
-                self.num_eval_iter = 1000
+                self.num_eval_iter = 100
 
         eval_dict = self.evaluate(args=args)
         eval_dict.update({'eval/best_acc': best_eval_acc, 'eval/best_it': best_it})
